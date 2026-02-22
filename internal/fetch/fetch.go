@@ -1,12 +1,15 @@
 package fetch
 
 import (
+	"archive/zip"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 )
 
 const repoAPI = "https://api.github.com/repos/Anthony-Maxwell1/BST-Core/releases/latest"
@@ -19,7 +22,23 @@ type Release struct {
 }
 
 func FetchLatest() error {
-	resp, err := http.Get(repoAPI)
+	// Determine OS zip name
+	var osZip string
+	switch runtime.GOOS {
+	case "linux":
+		osZip = "app-linux-x64.zip"
+	case "windows":
+		osZip = "app-win-x64.zip"
+	case "darwin":
+		osZip = "app-osx-x64.zip"
+	default:
+		return fmt.Errorf("unsupported OS: %s", runtime.GOOS)
+	}
+
+	// Get latest release
+	req, _ := http.NewRequest("GET", repoAPI, nil)
+	req.Header.Set("Accept", "application/vnd.github+json")
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -30,13 +49,21 @@ func FetchLatest() error {
 		return err
 	}
 
-	if len(release.Assets) == 0 {
-		return fmt.Errorf("no assets found")
+	// Find the correct asset
+	var url string
+	for _, asset := range release.Assets {
+		if asset.Name == osZip {
+			url = asset.BrowserDownloadURL
+			break
+		}
 	}
 
-	url := release.Assets[0].BrowserDownloadURL
-	fmt.Println("Downloading:", url)
+	if url == "" {
+		return fmt.Errorf("%s not found in latest release", osZip)
+	}
 
+	// Download
+	fmt.Println("Downloading:", url)
 	assetResp, err := http.Get(url)
 	if err != nil {
 		return err
@@ -44,9 +71,8 @@ func FetchLatest() error {
 	defer assetResp.Body.Close()
 
 	os.MkdirAll("core", 0755)
-	filePath := filepath.Join("core", release.Assets[0].Name)
-
-	out, err := os.Create(filePath)
+	zipPath := filepath.Join("core", osZip)
+	out, err := os.Create(zipPath)
 	if err != nil {
 		return err
 	}
@@ -57,6 +83,60 @@ func FetchLatest() error {
 		return err
 	}
 
-	fmt.Println("Saved to", filePath)
+	// Extract
+	fmt.Println("Extracting...")
+	if err := unzip(zipPath, "core"); err != nil {
+		return err
+	}
+	os.Remove(zipPath) // optional
+	fmt.Println("Extraction complete")
+
+	return nil
+}
+
+// unzip helper
+func unzip(src, dest string) error {
+	r, err := zip.OpenReader(src)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	for _, f := range r.File {
+		fpath := filepath.Join(dest, f.Name)
+		if !strings.HasPrefix(fpath, filepath.Clean(dest)+string(os.PathSeparator)) {
+			return fmt.Errorf("invalid file path: %s", fpath)
+		}
+
+		if f.FileInfo().IsDir() {
+			os.MkdirAll(fpath, os.ModePerm)
+			continue
+		}
+
+		if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+			return err
+		}
+
+		outFile, err := os.Create(fpath)
+		if err != nil {
+			return err
+		}
+
+		rc, err := f.Open()
+		if err != nil {
+			outFile.Close()
+			return err
+		}
+
+		_, err = io.Copy(outFile, rc)
+
+		outFile.Close()
+		rc.Close()
+
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
