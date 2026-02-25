@@ -1,3 +1,5 @@
+//go:build !windows
+
 package daemon
 
 import (
@@ -28,19 +30,7 @@ func Run() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	if runtime.GOOS == "windows" {
-		// Windows detach constants
-		const (
-			CREATE_NEW_PROCESS_GROUP = 0x00000200
-			DETACHED_PROCESS         = 0x00000008
-		)
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CreationFlags: CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS,
-		}
-	} else {
-		// Unix: leave SysProcAttr nil
-		cmd.SysProcAttr = nil
-	}
+	cmd.SysProcAttr = nil
 
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start daemon: %w", err)
@@ -72,11 +62,7 @@ func Stop() error {
 		return fmt.Errorf("failed to find process: %w", err)
 	}
 
-	if runtime.GOOS == "windows" {
-		err = process.Kill()
-	} else {
-		err = process.Signal(syscall.SIGTERM)
-	}
+	err = process.Signal(syscall.SIGTERM)
 
 	if err != nil {
 		return fmt.Errorf("failed to stop process: %w", err)
