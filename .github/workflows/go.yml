@@ -8,6 +8,7 @@ on:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    permissions: write-all
     steps:
       # 1. Checkout the repo
       - name: Checkout repo
@@ -39,5 +40,7 @@ jobs:
         with:
           tag: v${{ github.run_number }}
           name: Release ${{ github.run_number }}
-          files: |
-            dist/*
+          artifacts: |
+            dist/bst-win.exe
+            dist/bst-linux
+            dist/bst-mac
