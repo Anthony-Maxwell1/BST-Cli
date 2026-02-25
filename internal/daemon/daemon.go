@@ -12,12 +12,17 @@ import (
 const pidFile = "core/daemon.pid"
 
 func Run() error {
-	binary := "./core/BST-Core"
-	if runtime.GOOS == "windows" {
+	exePath, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+
+	exeDir := filepath.Dir(exePath)
+	corePath := filepath.Join(exeDir, "core", "BST-Core.exe")	if runtime.GOOS == "windows" {
 		binary += ".exe"
 	}
 
-	cmd := exec.Command(binary)
+	cmd := exec.Command(corePath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
