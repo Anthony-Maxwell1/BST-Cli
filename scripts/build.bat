@@ -1,1 +1,0 @@
-go build -o bst.exe ./cmd/bst

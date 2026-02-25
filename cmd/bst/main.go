@@ -28,12 +28,14 @@ func main() {
 
 	case "run":
 		if err := daemon.Run(); err != nil {
-			fmt.Println("Error starting daemon:", err)
+			fmt.Fprintln(os.Stderr, "Error starting daemon:", err)
+			os.Exit(1)
 		}
 
 	case "stop":
 		if err := daemon.Stop(); err != nil {
-			fmt.Println("Error stopping daemon:", err)
+			fmt.Println(os.Stderr, "Error stopping daemon:", err)
+			os.Exit(1)
 		}
 
 	case "project":
