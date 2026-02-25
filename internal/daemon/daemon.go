@@ -19,6 +19,11 @@ func Run() error {
 		panic(err)
 	}
 
+	if _, err := os.Stat(pidFile); err == nil {
+        fmt.Println("Another instance is already running. Exiting.")
+        os.Exit(1)
+    }
+
 	exeDir := filepath.Dir(exePath)
 	corePath := filepath.Join(exeDir, "core", "BST-Core")
 

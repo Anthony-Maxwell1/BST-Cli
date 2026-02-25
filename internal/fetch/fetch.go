@@ -70,14 +70,21 @@ func FetchLatest() error {
 	}
 	defer assetResp.Body.Close()
 
-	os.MkdirAll("core", 0755)
-	zipPath := filepath.Join("core", osZip)
+	exePath, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	exeDir := filepath.Dir(exePath)
+	coreDir := filepath.Join(exeDir, "core")
+	os.MkdirAll(coreDir, 0755)
+	zipPath := filepath.Join(coreDir, osZip)
+
+	// Download file
 	out, err := os.Create(zipPath)
 	if err != nil {
 		return err
 	}
 	defer out.Close()
-
 	_, err = io.Copy(out, assetResp.Body)
 	if err != nil {
 		return err
@@ -85,10 +92,10 @@ func FetchLatest() error {
 
 	// Extract
 	fmt.Println("Extracting...")
-	if err := unzip(zipPath, "core"); err != nil {
+	if err := unzip(zipPath, coreDir); err != nil {
 		return err
 	}
-	os.Remove(zipPath) // optional
+	os.Remove(zipPath)
 	fmt.Println("Extraction complete")
 
 	return nil
