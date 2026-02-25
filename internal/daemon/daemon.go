@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"syscall"
 )
@@ -22,9 +21,6 @@ func Run() error {
 
 	exeDir := filepath.Dir(exePath)
 	corePath := filepath.Join(exeDir, "core", "BST-Core")
-	if runtime.GOOS == "windows" {
-		corePath += ".exe"
-	}
 
 	cmd := exec.Command(corePath)
 	cmd.Stdout = os.Stdout
