@@ -11,21 +11,20 @@ import (
 	"syscall"
 )
 
-const pidFile = "core/daemon.pid"
-
 func Run() error {
 	exePath, err := os.Executable()
 	if err != nil {
 		panic(err)
 	}
 
+	exeDir := filepath.Dir(exePath)
+	corePath := filepath.Join(exeDir, "core", "BST-Core")
+	pidFile := filepath.Join(exeDir, "core", "daemon.pid")
+
 	if _, err := os.Stat(pidFile); err == nil {
         fmt.Println("Another instance is already running. Exiting.")
         os.Exit(1)
     }
-
-	exeDir := filepath.Dir(exePath)
-	corePath := filepath.Join(exeDir, "core", "BST-Core")
 
 	cmd := exec.Command(corePath)
 	cmd.Stdout = os.Stdout
@@ -48,6 +47,12 @@ func Run() error {
 }
 
 func Stop() error {
+	exePath, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	exeDir := filepath.Dir(exePath)
+	pidFile := filepath.Join(exeDir, "core", "daemon.pid")
 	data, err := os.ReadFile(pidFile)
 	if err != nil {
 		return fmt.Errorf("failed to read PID file: %w", err)
