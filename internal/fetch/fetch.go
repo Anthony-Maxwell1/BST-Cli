@@ -98,7 +98,29 @@ func FetchLatest() error {
 	os.Remove(zipPath)
 	fmt.Println("Extraction complete")
 
+	if runtime.GOOS != "windows" {
+		fmt.Println("Setting permissions...")
+		// Set permissions for non-Windows OS
+		files, err := os.ReadDir(coreDir)
+		if err != nil {
+			return err
+		}
+		for _, file := range files {
+			if !file.IsDir() {
+				if err := perms(filepath.Join(coreDir, file.Name())); err != nil {
+					return err
+				}
+			}
+		}
+		fmt.Println("Permissions set")
+	}
+
 	return nil
+}
+
+// permissions helper
+func perms(path string) error {
+	return os.Chmod(path, 0755)
 }
 
 // unzip helper
